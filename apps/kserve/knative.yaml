@@ -33,22 +33,27 @@ spec:
     createNamespace: false
   timeout: 30m
   values: {}
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: knative-serving
----
-apiVersion: operator.knative.dev/v1beta1
-kind: KnativeServing
-metadata:
-  name: knative-serving
-  namespace: knative-serving
-spec:
-  config:
-    domain:
-      config-domain: |
-        cluster.local: ""
-    features:
-      kubernetes.podspec-nodeselector: "enabled"
-      kubernetes.podspec-tolerations: "enabled"
+  test:
+    enable: false
+  rollback:
+    cleanupOnFail: true
+  upgrade:
+    cleanupOnFail: true
+  postRenderers:
+    - kustomize:
+        patches:
+          - target:
+              kind: Deployment
+              name: knative-operator
+            patch: |
+              - op: replace
+                path: /spec/template/spec/containers/0/readinessProbe
+                value:
+                  httpGet:
+                    path: /readyz
+                    port: 8080
+                  initialDelaySeconds: 10
+                  periodSeconds: 5
+                  timeoutSeconds: 3
+                  successThreshold: 1
+                  failureThreshold: 3
